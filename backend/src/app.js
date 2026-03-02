@@ -1,32 +1,37 @@
 import express from "express"
-import {createServer} from "node:http"
-
-import { Server } from "socket.io"
+import { createServer } from "node:http"
 import mongoose from "mongoose"
-
 import cors from "cors"
-import { console } from "node:inspector"
+import dotenv from "dotenv"
+
+import userRoutes from "./routes/users.routes.js"
 import { connectToSocket } from "./controllers/socketManager.js"
+
+dotenv.config()
 
 const app = express()
 const server = createServer(app)
-const io = connectToSocket(server)
+connectToSocket(server)
 
 app.set("port", process.env.PORT || 8000)
-app.use(cors())
-app.use(express.json({limit: "40kb"}))
-app.use(express.urlencoded({limit: "40kb", extended: true}))
 
+app.use(cors())
+app.use(express.json({ limit: "40kb" }))
+app.use(express.urlencoded({ limit: "40kb", extended: true }))
+
+app.use("/api/v1/users", userRoutes)
 
 const start = async () => {
-  const connectionDb = await mongoose.connect("mongodb+srv://zoom:Zoom123@nitindatabase.mtilcxz.mongodb.net/")
+  try {
+    const connectionDb = await mongoose.connect(process.env.MONGO_URI)
+    console.log(`Mongo connected DB Host: ${connectionDb.connection.host}`)
 
-  console.log(`Mongo connected DB Host: ${connectionDb.connection.host}`)
-
-  server.listen(app.get("port"), () => {
-    console.log("Server is running on port 8000")
-  })
+    server.listen(app.get("port"), () => {
+      console.log(`Server running on port ${app.get("port")}`)
+    })
+  } catch (error) {
+    console.error("Error starting server:", error)
+  }
 }
 
 start()
-
